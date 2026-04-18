@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GlobalRole {
+  ADMIN
+  USER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskType {
+  ONE_TIME
+  RECURRING
+}
+
+model User {
+  id                String            @id @default(cuid())
+  name              String?
+  email             String            @unique
+  emailVerified     DateTime?
+  image             String?
+  password          String?
+  onboarded         Boolean           @default(false)
+  globalRole        GlobalRole        @default(USER)
+  
+  accounts          Account[]
+  sessions          Session[]
+  
+  teams             TeamMember[]
+  createdTasks      Task[]            @relation("CreatedTasks")
+  assignedTasks     TaskAssignee[]
+  comments          Comment[]
+  reactions         CommentReaction[]
+  activityLogs      ActivityLog[]
+  labels            Label[]
+  notificationPrefs NotificationPrefs?
+  notifications     Notification[]
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationPrefs {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  onAssigned     Boolean @default(true)
+  onMention      Boolean @default(true)
+  onStatusChange Boolean @default(true)
+  onReminder     Boolean @default(true)
+  onRecurring    Boolean @default(true)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // mention, assignment, status_change, reminder, recurring, comment
+  title     String
+  content   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  color       String       @default("#6366f1")
+  members     TeamMember[]
+  tasks       Task[]
+  labels      Label[]
+  invites     Invite[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      String   @default("MEMBER") // ADMIN, MANAGER, MEMBER
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+}
+
+model Invite {
+  id        String   @id @default(cuid())
+  email     String
+  teamId    String
+  role      String   @default("MEMBER")
+  token     String   @unique
+  expires   DateTime
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Task {
+  id                    String         @id @default(cuid())
+  title                 String
+  description           String?
+  priority              TaskPriority   @default(MEDIUM)
+  status                TaskStatus     @default(TODO)
+  type                  TaskType       @default(ONE_TIME)
+  isPersonal            Boolean        @default(false)
+  restrictStatusUpdates Boolean        @default(false)
+  
+  // Link an instance to its recurring parent
+  recurringTaskId       String?
+  recurringTask         Task?          @relation("RecurringInstances", fields: [recurringTaskId], references: [id])
+  instances             Task[]         @relation("RecurringInstances")
+
+  dueDate               DateTime?
+  startDate             DateTime?
+  completedAt           DateTime?
+  position              Float          @default(0)
+  
+  creatorId             String
+  creator               User           @relation("CreatedTasks", fields: [creatorId], references: [id])
+  
+  teamId                String?
+  team                  Team?          @relation(fields: [teamId], references: [id])
+  
+  parentId              String?
+  parent                Task?          @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks              Task[]         @relation("Subtasks")
+  
+  assignees             TaskAssignee[]
+  labels                TaskLabel[]
+  comments              Comment[]
+  attachments           Attachment[]
+  activityLogs          ActivityLog[]
+  recurringRule         RecurringRule?
+  
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@index([creatorId])
+  @@index([teamId])
+}
+
+model TaskAssignee {
+  taskId String
+  userId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+}
+
+model Label {
+  id        String      @id @default(cuid())
+  name      String
+  color     String      @default("#6366f1")
+  teamId    String?
+  userId    String?
+  team      Team?       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks     TaskLabel[]
+  createdAt DateTime    @default(now())
+}
+
+model TaskLabel {
+  taskId  String
+  labelId String
+  task    Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+}
+
+model Comment {
+  id        String            @id @default(cuid())
+  content   String
+  taskId    String
+  authorId  String
+  task      Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions CommentReaction[]
+  createdAt DateTime          @default(now())
+}
+
+model CommentReaction {
+  id        String  @id @default(cuid())
+  commentId String
+  userId    String
+  emoji     String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, emoji])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  driveId   String?
+  size      Int
+  type      String
+  taskId    String
+  userId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  action    String
+  taskId    String?
+  userId    String
+  details   String?  @db.Text
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model RecurringRule {
+  id        String   @id @default(cuid())
+  taskId    String   @unique
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  frequency String   // DAILY, WEEKLY, MONTHLY, INTERVAL
+  interval  Int      @default(1)
+  leadTime  Int      @default(0) // Days before due date to create the task
+  nextRun   DateTime?
+  createdAt DateTime @default(now())
+}
