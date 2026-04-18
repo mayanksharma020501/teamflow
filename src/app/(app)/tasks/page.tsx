@@ -140,7 +140,7 @@ function FilterDropdown({
 
 function TasksContent() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [view, setView] = useState<"board" | "list">("board");
+  const [view, setView] = useState<"board" | "list">("list");
   const [showForm, setShowForm] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [defaultStatus, setDefaultStatus] = useState<string | undefined>();
