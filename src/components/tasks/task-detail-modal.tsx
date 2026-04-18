@@ -101,9 +101,9 @@ export function TaskDetailModal({ taskId, onClose, onUpdated }: TaskDetailModalP
   const completedSubtasks = task.subtasks?.filter((s: { status: string }) => s.status === "DONE").length || 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-3xl h-[85vh] bg-card rounded-2xl border border-border shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full h-full md:max-w-3xl md:h-[85vh] bg-card md:rounded-2xl border-none md:border border-border shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/50">
@@ -157,9 +157,9 @@ export function TaskDetailModal({ taskId, onClose, onUpdated }: TaskDetailModalP
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto flex">
+        <div className="flex-1 overflow-y-auto flex flex-col md:flex-row">
           {/* Main Content */}
-          <div className="flex-1 p-6 border-r border-border/50 overflow-y-auto">
+          <div className="flex-1 p-4 md:p-6 border-b md:border-b-0 md:border-r border-border/50">
             {task.type === "RECURRING" && (
               <div className="mb-4 p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 flex flex-col gap-3">
                 <div className="flex items-center gap-3">
@@ -285,7 +285,7 @@ export function TaskDetailModal({ taskId, onClose, onUpdated }: TaskDetailModalP
           </div>
 
           {/* Sidebar */}
-          <div className="w-64 bg-accent/10 p-6 flex flex-col">
+          <div className="w-full md:w-64 bg-accent/10 p-4 md:p-6 flex flex-col">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-4">Properties</h4>
             
             <div className="space-y-4">

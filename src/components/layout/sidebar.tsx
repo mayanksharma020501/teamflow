@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   Zap,
   Plus,
+  X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
@@ -29,7 +30,13 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ 
+  mobileOpen, 
+  setMobileOpen 
+}: { 
+  mobileOpen?: boolean; 
+  setMobileOpen?: (open: boolean) => void; 
+}) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
@@ -41,12 +48,23 @@ export function Sidebar() {
   }, []);
 
   return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 h-screen flex flex-col border-r border-border/50 bg-card transition-all duration-300",
-        collapsed ? "w-[68px]" : "w-[260px]"
+    <>
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden" 
+          onClick={() => setMobileOpen?.(false)}
+        />
       )}
-    >
+
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-50 h-screen flex flex-col border-r border-border/50 bg-card transition-all duration-300",
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          collapsed ? "md:w-[68px]" : "md:w-[260px]",
+          "w-[260px]"
+        )}
+      >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-border/50">
         <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex-shrink-0">
@@ -58,9 +76,15 @@ export function Sidebar() {
           </span>
         )}
         <button
+          onClick={() => setMobileOpen?.(false)}
+          className="ml-auto p-1.5 rounded-lg hover:bg-accent md:hidden transition-colors"
+        >
+          <X size={20} className="text-muted-foreground" />
+        </button>
+        <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
-            "ml-auto p-1.5 rounded-lg hover:bg-accent transition-colors",
+            "ml-auto p-1.5 rounded-lg hover:bg-accent transition-colors hidden md:block",
             collapsed && "ml-0"
           )}
         >
@@ -75,6 +99,7 @@ export function Sidebar() {
       <div className="px-3 pt-4 pb-2">
         <Link
           href="/tasks?new=true"
+          onClick={() => setMobileOpen?.(false)}
           className={cn(
             "flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold transition-all hover:shadow-lg hover:shadow-indigo-500/25",
             collapsed ? "justify-center p-2.5" : "px-4 py-2.5"
@@ -94,6 +119,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setMobileOpen?.(false)}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
                 isActive

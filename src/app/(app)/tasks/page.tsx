@@ -291,7 +291,7 @@ function TasksContent() {
     <div>
       {/* Page Header */}
       <div className="flex flex-col gap-6 mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">My Tasks</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
@@ -331,49 +331,49 @@ function TasksContent() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between bg-card/50 p-1.5 rounded-2xl border border-border/50 backdrop-blur-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-card/50 p-1.5 rounded-2xl border border-border/50 backdrop-blur-sm gap-2">
           <div className="flex items-center gap-1">
             <button
               onClick={() => setTypeFilter("ONE_TIME")}
               className={cn(
-                "px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
+                "flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
                 typeFilter === "ONE_TIME" 
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
                   : "text-muted-foreground hover:bg-accent"
               )}
             >
-              <CheckSquare size={16} /> To-Do Tasks
+              <CheckSquare size={16} /> <span className="hidden sm:inline">To-Do Tasks</span><span className="sm:hidden">To-Do</span>
             </button>
             <button
               onClick={() => setTypeFilter("RECURRING")}
               className={cn(
-                "px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
+                "flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
                 typeFilter === "RECURRING" 
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
                   : "text-muted-foreground hover:bg-accent"
               )}
             >
-              <Zap size={16} /> Automations
+              <Zap size={16} /> <span className="hidden sm:inline">Automations</span><span className="sm:hidden">Auto</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between lg:justify-end gap-2 px-2 pb-1 lg:pb-0">
             {hasActiveFilters && (
               <button
                 onClick={() => setColumnFilters({ status: [], priority: [], assignees: [], dueDate: [] })}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all"
               >
-                <X size={14} /> Clear Filters
+                <X size={14} /> <span className="hidden sm:inline">Clear Filters</span>
               </button>
             )}
-            <div className="relative mr-2">
+            <div className="relative flex-1 lg:flex-none">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search tasks..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-transparent text-sm w-48 focus:outline-none focus:w-64 transition-all"
+                className="pl-9 pr-4 py-2 bg-transparent text-sm w-full lg:w-48 focus:outline-none lg:focus:w-64 transition-all"
               />
             </div>
           </div>

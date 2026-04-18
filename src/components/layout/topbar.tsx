@@ -1,12 +1,12 @@
 "use client";
 
-import { Search, Bell, Command, CheckCircle2, AlertCircle, Plus, MessageSquare } from "lucide-react";
+import { Search, Bell, Command, CheckCircle2, AlertCircle, Plus, MessageSquare, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export function Topbar() {
+export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const [searchFocused, setSearchFocused] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -62,24 +62,33 @@ export function Topbar() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border/50 bg-card/80 backdrop-blur-xl px-6 py-3">
-      {/* Search */}
-      <div className="relative flex-1 max-w-xl">
-        <Search
-          size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-        />
-        <input
-          type="text"
-          placeholder="Search tasks, teams, people..."
-          className="w-full rounded-xl border border-border/50 bg-accent/50 py-2 pl-10 pr-20 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all"
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          suppressHydrationWarning
-        />
-        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-1 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-          <Command size={10} /> K
-        </kbd>
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border/50 bg-card/80 backdrop-blur-xl px-4 md:px-6 py-3">
+      <div className="flex items-center gap-4 flex-1">
+        <button
+          onClick={onMenuClick}
+          className="p-2 rounded-xl hover:bg-accent md:hidden transition-colors"
+        >
+          <Menu size={20} className="text-muted-foreground" />
+        </button>
+
+        {/* Search */}
+        <div className="relative flex-1 max-w-xl">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full rounded-xl border border-border/50 bg-accent/50 py-2 pl-10 pr-4 md:pr-20 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all"
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            suppressHydrationWarning
+          />
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-1 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <Command size={10} /> K
+          </kbd>
+        </div>
       </div>
 
       {/* Right Actions */}
