@@ -17,7 +17,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981"];
+const STATUS_COLORS: any = {
+  DONE: "#10b981", // Emerald
+  IN_PROGRESS: "#3b82f6", // Blue
+  TODO: "#94a3b8", // Slate
+  REVIEW: "#f59e0b", // Amber
+};
+
+const GENERIC_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981"];
 
 export function AnalyticsDashboard() {
   const [data, setData] = useState<any>(null);
@@ -154,7 +161,7 @@ export function AnalyticsDashboard() {
                   dataKey="value"
                 >
                   {data.statusData.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || GENERIC_COLORS[index % GENERIC_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -223,7 +230,7 @@ export function AnalyticsDashboard() {
                 <div className="h-2 w-full bg-accent rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-indigo-500 transition-all duration-1000"
-                    style={{ width: `${(p.value / data.totalTasks) * 100}%`, backgroundColor: COLORS[i % COLORS.length] }}
+                    style={{ width: `${(p.value / data.totalTasks) * 100}%`, backgroundColor: GENERIC_COLORS[i % GENERIC_COLORS.length] }}
                   />
                 </div>
               </div>
