@@ -31,10 +31,16 @@ export async function GET(req: Request) {
     } else if (scope.startsWith("team:")) {
       baseWhere.teamId = scope.split(":")[1];
     } else {
-      // "all" - My Tasks logic: Tasks assigned to me OR Personal tasks created by me
+      // "all" - My Tasks logic: Tasks assigned to me OR Personal OR Unassigned in my teams
       baseWhere.OR = [
         { assignees: { some: { userId } } },
-        { AND: [{ creatorId: userId }, { isPersonal: true }] }
+        { AND: [{ creatorId: userId }, { isPersonal: true }] },
+        { 
+          AND: [
+            { team: { members: { some: { userId } } } },
+            { assignees: { none: {} } }
+          ]
+        }
       ];
     }
 
