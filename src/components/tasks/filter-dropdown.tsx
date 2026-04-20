@@ -76,21 +76,42 @@ export function FilterDropdown({
               })}
             </div>
             {label === "Due Date" && (
-              <div className="mt-2 pt-2 border-t border-border/50">
-                <p className="text-[9px] font-bold text-muted-foreground uppercase px-2 mb-1">Pick a date</p>
-                <input
-                  type="date"
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      const dateVal = `DATE:${e.target.value}`;
-                      if (!selected.includes(dateVal)) {
-                        onChange([...selected, dateVal]);
-                      }
-                    }
-                  }}
-                  className="w-full bg-accent/50 text-[10px] px-2 py-1.5 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500/50"
-                />
+              <div className="mt-2 pt-2 border-t border-border/50 space-y-2">
+                <p className="text-[9px] font-bold text-muted-foreground uppercase px-2">Custom Range</p>
+                <div className="flex flex-col gap-1.5 px-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] text-muted-foreground w-6">From</span>
+                    <input
+                      type="date"
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const dateVal = `FROM:${e.target.value}`;
+                          // Remove existing FROM if any
+                          const otherFilters = selected.filter(f => !f.startsWith("FROM:"));
+                          onChange([...otherFilters, dateVal]);
+                        }
+                      }}
+                      className="flex-1 bg-accent/50 text-[10px] px-2 py-1 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500/50"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] text-muted-foreground w-6">To</span>
+                    <input
+                      type="date"
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const dateVal = `TO:${e.target.value}`;
+                          // Remove existing TO if any
+                          const otherFilters = selected.filter(f => !f.startsWith("TO:"));
+                          onChange([...otherFilters, dateVal]);
+                        }
+                      }}
+                      className="flex-1 bg-accent/50 text-[10px] px-2 py-1 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500/50"
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>

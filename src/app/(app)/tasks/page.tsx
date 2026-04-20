@@ -21,7 +21,7 @@ import {
   Check,
 } from "lucide-react";
 import { toast } from "sonner";
-import { isToday, isYesterday, isTomorrow, isThisWeek, isPast, isFuture, startOfDay, addWeeks, isSameWeek, format, isSameDay } from "date-fns";
+import { isToday, isYesterday, isTomorrow, isThisWeek, isPast, isFuture, startOfDay, addWeeks, isSameWeek, format, isSameDay, isSameMonth, subMonths } from "date-fns";
 import { FilterDropdown } from "@/components/tasks/filter-dropdown";
 
 type Task = {
@@ -60,6 +60,8 @@ const DUE_DATE_OPTIONS = [
   { label: "Tomorrow", value: "TOMORROW" },
   { label: "This Week", value: "THIS_WEEK" },
   { label: "Next Week", value: "NEXT_WEEK" },
+  { label: "This Month", value: "THIS_MONTH" },
+  { label: "Last Month", value: "LAST_MONTH" },
   { label: "No Due Date", value: "NO_DATE" },
 ];
 
@@ -223,9 +225,15 @@ function TasksContent() {
           const nextWeek = addWeeks(new Date(), 1);
           return isSameWeek(date, nextWeek, { weekStartsOn: 1 });
         }
-        if (f.startsWith("DATE:")) {
-          const targetDate = f.replace("DATE:", "");
-          return isSameDay(date, new Date(targetDate));
+        if (f === "THIS_MONTH") return isSameMonth(date, new Date());
+        if (f === "LAST_MONTH") return isSameMonth(date, subMonths(new Date(), 1));
+        if (f.startsWith("FROM:")) {
+          const fromDate = new Date(f.replace("FROM:", ""));
+          return date >= startOfDay(fromDate);
+        }
+        if (f.startsWith("TO:")) {
+          const toDate = new Date(f.replace("TO:", ""));
+          return date <= startOfDay(toDate);
         }
         return false;
       });
