@@ -297,7 +297,7 @@ export default function TeamDetailPage() {
               className="flex -space-x-2 mr-2 p-1 rounded-xl hover:bg-accent transition-all group"
               title="View team members"
             >
-              {team.members.slice(0, 5).map((m) => (
+              {team.members?.slice(0, 5).map((m) => (
                 <div
                   key={m.id}
                   className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-card shadow-sm group-hover:ring-accent"
@@ -310,7 +310,7 @@ export default function TeamDetailPage() {
                   )}
                 </div>
               ))}
-              {team.members.length > 5 && (
+              {team.members && team.members.length > 5 && (
                 <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold text-muted-foreground ring-2 ring-card">
                   +{team.members.length - 5}
                 </div>
@@ -511,18 +511,55 @@ export default function TeamDetailPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-4">
-                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-accent text-accent-foreground uppercase tracking-wider">
-                        {statusLabel(task.status)}
-                      </span>
+                    <td className="py-4 px-4" onClick={(e) => e.stopPropagation()}>
+                      {(() => {
+                        const canEditTask = task.creator?.id === session?.user?.id || task.assignees?.some(a => a.user.id === session?.user?.id);
+                        return (
+                          <select
+                            value={task.status}
+                            disabled={!canEditTask}
+                            onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                            className={cn(
+                              "text-[10px] font-bold px-2.5 py-1 rounded-full bg-accent text-accent-foreground uppercase tracking-wider focus:outline-none transition-all",
+                              !canEditTask && "appearance-none cursor-default opacity-80"
+                            )}
+                          >
+                            <option value="TODO">To Do</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="REVIEW">Review</option>
+                            <option value="DONE">Done</option>
+                          </select>
+                        );
+                      })()}
                     </td>
-                    <td className="py-4 px-4">
-                      <span className={cn(
-                        "text-[10px] font-bold uppercase px-2.5 py-1 rounded-full tracking-wider shadow-sm",
-                        priorityColor(task.priority)
-                      )}>
-                        {task.priority}
-                      </span>
+                    <td className="py-4 px-4" onClick={(e) => e.stopPropagation()}>
+                      {(() => {
+                        const canEditTask = task.creator?.id === session?.user?.id || task.assignees?.some(a => a.user.id === session?.user?.id);
+                        return (
+                          <select
+                            value={task.priority}
+                            disabled={!canEditTask}
+                            onChange={async (e) => {
+                              await fetch(`/api/tasks/${task.id}`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ priority: e.target.value }),
+                              });
+                              fetchData();
+                            }}
+                            className={cn(
+                              "text-[10px] font-bold uppercase px-2.5 py-1 rounded-full tracking-wider shadow-sm transition-all focus:outline-none",
+                              priorityColor(task.priority),
+                              !canEditTask && "appearance-none cursor-default opacity-80"
+                            )}
+                          >
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="URGENT">Urgent</option>
+                          </select>
+                        );
+                      })()}
                     </td>
                     <td className="py-4 px-4">
                       {task.dueDate ? (
@@ -652,7 +689,7 @@ export default function TeamDetailPage() {
             </div>
 
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-              {team.members.map((member) => (
+              {team.members?.map((member) => (
                 <div 
                   key={member.id}
                   className="flex items-center gap-4 p-4 rounded-2xl bg-accent/30 border border-border/50 transition-all hover:bg-accent/50"
