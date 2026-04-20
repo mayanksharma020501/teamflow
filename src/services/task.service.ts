@@ -93,7 +93,7 @@ export async function createTask(userId: string, data: TaskCreateInput) {
             include: { notificationPrefs: true }
           });
           
-          if (assignee?.email && assignee.notificationPrefs?.onAssigned) {
+          if (assignee?.email && (assignee.notificationPrefs?.onAssigned ?? true)) {
             const html = buildAssignmentEmailHtml(
               task.title,
               creator?.name || "A team member",
@@ -326,7 +326,7 @@ export async function updateTask(taskId: string, userId: string, data: TaskUpdat
             include: { notificationPrefs: true }
           });
           
-          if (assignee?.email && assignee.notificationPrefs?.onAssigned) {
+          if (assignee?.email && (assignee.notificationPrefs?.onAssigned ?? true)) {
             const html = buildAssignmentEmailHtml(
               task.title,
               updater?.name || "A team member",
@@ -394,7 +394,10 @@ export async function updateTask(taskId: string, userId: string, data: TaskUpdat
         const assigneesToEmail = await prisma.user.findMany({
           where: {
             id: { in: task.assignees.map((a) => a.userId), not: userId },
-            notificationPrefs: { onStatusChange: true }
+            OR: [
+              { notificationPrefs: { onStatusChange: true } },
+              { notificationPrefs: null }
+            ]
           }
         });
 

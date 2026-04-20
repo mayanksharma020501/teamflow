@@ -96,7 +96,7 @@ export async function POST(
             });
 
             // Send email if enabled
-            if (mentionedUser.notificationPrefs?.onMention) {
+            if (mentionedUser.notificationPrefs?.onMention ?? true) {
               const html = buildMentionEmailHtml(
                 task?.title || "a task",
                 data.content.substring(0, 100) + (data.content.length > 100 ? "..." : ""),
@@ -142,7 +142,7 @@ export async function POST(
             include: { notificationPrefs: true }
           });
 
-          if (participant?.email && participant.notificationPrefs?.onComment) {
+          if (participant?.email && (participant.notificationPrefs?.onComment ?? true)) {
             const { sendEmail, buildMentionEmailHtml } = await import("@/lib/email");
             const html = buildMentionEmailHtml(
               task.title,
