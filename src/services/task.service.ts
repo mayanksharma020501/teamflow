@@ -121,22 +121,28 @@ export async function getUserTasks(userId: string, filters?: {
   personal?: boolean;
   type?: string;
 }) {
-  const where: Record<string, unknown> = {
-    parentId: null, // Only top-level tasks
-    OR: [
+  const where: Record<string, any> = {
+    parentId: null,
+  };
+
+  // If we're filtering by a specific team, show ALL tasks in that team
+  if (filters?.teamId) {
+    where.teamId = filters.teamId;
+  } else {
+    // If we're in the "My Tasks" view (no specific teamId), apply assignee filtering
+    where.OR = [
       { assignees: { some: { userId } } }, // Tasks assigned to me
       {
         assignees: { none: {} }, // Unassigned tasks
         OR: [
           { creatorId: userId, isPersonal: true }, // My unassigned personal tasks
-          { team: { members: { some: { userId } } } } // Unassigned tasks in my teams
+          { team: { members: { some: { userId } } } } // Unassigned tasks in teams I belong to
         ]
       }
-    ],
-  };
+    ];
+  }
 
   if (filters?.status) where.status = filters.status;
-  if (filters?.teamId) where.teamId = filters.teamId;
   if (filters?.type) where.type = filters.type;
   if (filters?.personal) {
     where.isPersonal = true;
