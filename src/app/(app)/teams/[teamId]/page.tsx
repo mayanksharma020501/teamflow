@@ -30,7 +30,7 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { isToday, isYesterday, isTomorrow, isThisWeek, isPast, isFuture, startOfDay, addWeeks, isSameWeek } from "date-fns";
+import { isToday, isYesterday, isTomorrow, isThisWeek, isPast, isFuture, startOfDay, addWeeks, isSameWeek, format, isSameDay } from "date-fns";
 import { FilterDropdown } from "@/components/tasks/filter-dropdown";
 
 const STATUS_OPTIONS = [
@@ -154,6 +154,10 @@ export default function TeamDetailPage() {
         if (f === "NEXT_WEEK") {
           const nextWeek = addWeeks(new Date(), 1);
           return isSameWeek(date, nextWeek, { weekStartsOn: 1 });
+        }
+        if (f.startsWith("DATE:")) {
+          const targetDate = f.replace("DATE:", "");
+          return isSameDay(date, new Date(targetDate));
         }
         return false;
       });

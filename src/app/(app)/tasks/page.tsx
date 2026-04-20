@@ -21,7 +21,7 @@ import {
   Check,
 } from "lucide-react";
 import { toast } from "sonner";
-import { isToday, isYesterday, isTomorrow, isThisWeek, isPast, isFuture, startOfDay, addWeeks, isSameWeek } from "date-fns";
+import { isToday, isYesterday, isTomorrow, isThisWeek, isPast, isFuture, startOfDay, addWeeks, isSameWeek, format, isSameDay } from "date-fns";
 import { FilterDropdown } from "@/components/tasks/filter-dropdown";
 
 type Task = {
@@ -222,6 +222,10 @@ function TasksContent() {
         if (f === "NEXT_WEEK") {
           const nextWeek = addWeeks(new Date(), 1);
           return isSameWeek(date, nextWeek, { weekStartsOn: 1 });
+        }
+        if (f.startsWith("DATE:")) {
+          const targetDate = f.replace("DATE:", "");
+          return isSameDay(date, new Date(targetDate));
         }
         return false;
       });
