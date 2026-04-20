@@ -35,6 +35,7 @@ type Task = {
   assignees: { user: { id: string; name: string | null; image: string | null } }[];
   labels: { label: { id: string; name: string; color: string } }[];
   subtasks: { id: string; title: string; status: string }[];
+  team?: { id: string; name: string; color: string } | null;
   _count?: { comments: number; attachments: number };
 };
 
@@ -156,6 +157,7 @@ function TasksContent() {
     priority: [] as string[],
     assignees: [] as string[],
     dueDate: [] as string[],
+    teams: [] as string[],
   });
   const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
 
@@ -245,11 +247,23 @@ function TasksContent() {
   }
 
   // Extract unique assignees from loaded tasks
-  const assigneeOptions = Array.from(
-    new Map(
-      tasks.flatMap((t) => t.assignees.map((a) => [a.user.id, a.user.name || "Unknown User"]))
-    )
-  ).map(([value, label]) => ({ label, value }));
+  const assigneeOptions = [
+    { label: "Unassigned", value: "UNASSIGNED" },
+    ...Array.from(
+      new Map(
+        tasks.flatMap((t) => t.assignees.map((a) => [a.user.id, a.user.name || "Unknown User"]))
+      )
+    ).map(([value, label]) => ({ label, value }))
+  ];
+
+  const teamOptions = [
+    { label: "Personal", value: "PERSONAL" },
+    ...Array.from(
+      new Map(
+        tasks.filter(t => t.team).map(t => [t.team!.id, t.team!.name])
+      )
+    ).map(([value, label]) => ({ label, value }))
+  ];
 
   const filteredTasks = tasks.filter((t) => {
     const matchesType = typeFilter === "ALL" || t.type === typeFilter;
@@ -258,7 +272,18 @@ function TasksContent() {
     // Column Filters
     if (columnFilters.status.length > 0 && !columnFilters.status.includes(t.status)) return false;
     if (columnFilters.priority.length > 0 && !columnFilters.priority.includes(t.priority)) return false;
-    if (columnFilters.assignees.length > 0 && !t.assignees.some((a) => columnFilters.assignees.includes(a.user.id))) return false;
+    
+    if (columnFilters.assignees.length > 0) {
+      const isUnassignedSelected = columnFilters.assignees.includes("UNASSIGNED");
+      const isAssignedToUser = t.assignees.some((a) => columnFilters.assignees.includes(a.user.id));
+      if (!isAssignedToUser && !(isUnassignedSelected && t.assignees.length === 0)) return false;
+    }
+
+    if (columnFilters.teams.length > 0) {
+      const isPersonalSelected = columnFilters.teams.includes("PERSONAL");
+      const isTeamMatch = t.team && columnFilters.teams.includes(t.team.id);
+      if (!isTeamMatch && !(isPersonalSelected && !t.team)) return false;
+    }
     
     if (columnFilters.dueDate.length > 0) {
       const date = t.dueDate ? new Date(t.dueDate) : null;
@@ -285,7 +310,8 @@ function TasksContent() {
     columnFilters.status.length > 0 || 
     columnFilters.priority.length > 0 || 
     columnFilters.assignees.length > 0 || 
-    columnFilters.dueDate.length > 0;
+    columnFilters.dueDate.length > 0 ||
+    columnFilters.teams.length > 0;
 
   return (
     <div>
@@ -435,6 +461,19 @@ function TasksContent() {
                   <th className="text-left py-4 px-4 font-bold">Task</th>
                   <th className="text-left py-4 px-4 font-bold">
                     <div className="flex items-center">
+                      Team
+                      <FilterDropdown
+                        label="Team"
+                        options={teamOptions}
+                        selected={columnFilters.teams}
+                        onChange={(v) => setColumnFilters((p) => ({ ...p, teams: v }))}
+                        isOpen={openFilterCol === "teams"}
+                        onToggle={() => setOpenFilterCol(openFilterCol === "teams" ? null : "teams")}
+                      />
+                    </div>
+                  </th>
+                  <th className="text-left py-4 px-4 font-bold">
+                    <div className="flex items-center">
                       Status
                       <FilterDropdown
                         label="Status"
@@ -538,6 +577,18 @@ function TasksContent() {
                     </div>
                   </td>
                   <td className="py-4 px-4">
+                    {task.team ? (
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider shadow-sm border border-indigo-500/10">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: task.team.color || '#4f46e5' }} />
+                        {task.team.name}
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full bg-accent/50 text-[10px] font-bold text-muted-foreground uppercase tracking-wider italic">
+                        Personal
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-4 px-4">
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-accent text-accent-foreground uppercase tracking-wider">
                       {statusLabel(task.status)}
                     </span>
@@ -591,7 +642,7 @@ function TasksContent() {
               ))}
               {filteredTasks.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-24 text-center text-muted-foreground">
+                  <td colSpan={7} className="py-24 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-16 h-16 rounded-full bg-accent/50 flex items-center justify-center text-3xl">
                         🔍

@@ -124,14 +124,14 @@ export async function getUserTasks(userId: string, filters?: {
   const where: Record<string, unknown> = {
     parentId: null, // Only top-level tasks
     OR: [
-      { creatorId: userId, isPersonal: true },
-      { assignees: { some: { userId } } },
+      { assignees: { some: { userId } } }, // Tasks assigned to me
       {
-        team: {
-          members: { some: { userId } },
-        },
-        isPersonal: false,
-      },
+        assignees: { none: {} }, // Unassigned tasks
+        OR: [
+          { creatorId: userId, isPersonal: true }, // My unassigned personal tasks
+          { team: { members: { some: { userId } } } } // Unassigned tasks in my teams
+        ]
+      }
     ],
   };
 
@@ -161,6 +161,7 @@ export async function getUserTasks(userId: string, filters?: {
       creator: { select: { id: true, name: true, email: true, image: true } },
       subtasks: { select: { id: true, title: true, status: true } },
       recurringRule: true,
+      team: { select: { id: true, name: true, color: true } },
       _count: { select: { comments: true, attachments: true, instances: true } },
     },
     orderBy: [{ position: "asc" }, { createdAt: "desc" }],
