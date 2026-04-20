@@ -221,31 +221,23 @@ export async function updateTask(taskId: string, userId: string, data: TaskUpdat
   if (data.description !== undefined) updateData.description = data.description;
   if (data.priority !== undefined) updateData.priority = data.priority;
   
-  if (data.status !== undefined) {
-    if (data.status !== oldTask.status && oldTask.restrictStatusUpdates) {
-      const isCreator = oldTask.creatorId === userId;
-      const isAssignee = oldTask.assignees.some((a) => a.userId === userId);
-      const hasAssignees = oldTask.assignees.length > 0;
-      
-      let isTeamAdmin = false;
-      if (oldTask.teamId) {
-        try {
-          const teamMember = await prisma.teamMember.findUnique({
-            where: { teamId_userId: { teamId: oldTask.teamId, userId } }
-          });
-          isTeamAdmin = teamMember?.role === "ADMIN";
-        } catch (e) {
-          console.error("Team check failed:", e);
-        }
-      }
-
-      if (!isCreator && !isAssignee && !isTeamAdmin && hasAssignees) {
-        throw new Error("Status updates are restricted to the creator and assignees for this task.");
-      }
+  if (data.status !== undefined || data.priority !== undefined) {
+    const isCreator = oldTask.creatorId === userId;
+    const isAssignee = oldTask.assignees.some((a) => a.userId === userId);
+    
+    if (!isCreator && !isAssignee) {
+      throw new Error(`Permission Denied: Only the creator and assignees can update the status or priority.`);
     }
-    updateData.status = data.status;
-    if (data.status === "DONE") updateData.completedAt = new Date();
-    else if (oldTask.status === "DONE") updateData.completedAt = null;
+
+    if (data.status !== undefined) {
+      updateData.status = data.status;
+      if (data.status === "DONE") updateData.completedAt = new Date();
+      else if (oldTask.status === "DONE") updateData.completedAt = null;
+    }
+
+    if (data.priority !== undefined) {
+      updateData.priority = data.priority;
+    }
   }
 
   if (data.isPersonal !== undefined) updateData.isPersonal = data.isPersonal;

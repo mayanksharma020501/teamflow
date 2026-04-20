@@ -98,7 +98,13 @@ export function TaskDetailModal({ taskId, onClose, onUpdated }: TaskDetailModalP
 
   if (!task) return null;
 
+  const { status: sessionStatus } = useSession();
   const completedSubtasks = task.subtasks?.filter((s: { status: string }) => s.status === "DONE").length || 0;
+  
+  // Wait for session and task to be ready
+  const isCreator = session?.user?.id === task.creatorId;
+  const isAssignee = task.assignees?.some((a: any) => a.userId === session?.user?.id);
+  const canEdit = sessionStatus === "loading" ? false : (isCreator || isAssignee);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4">
@@ -110,8 +116,12 @@ export function TaskDetailModal({ taskId, onClose, onUpdated }: TaskDetailModalP
           <div className="flex items-center gap-3">
             <select
               value={task.status}
+              disabled={!canEdit}
               onChange={(e) => updateField("status", e.target.value)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-border bg-accent focus:outline-none"
+              className={cn(
+                "text-xs font-semibold px-3 py-1.5 rounded-lg border border-border bg-accent focus:outline-none transition-all",
+                !canEdit && "appearance-none cursor-default opacity-80"
+              )}
             >
               <option value="TODO">To Do</option>
               <option value="IN_PROGRESS">In Progress</option>
@@ -120,14 +130,22 @@ export function TaskDetailModal({ taskId, onClose, onUpdated }: TaskDetailModalP
             </select>
             <select
               value={task.priority}
+              disabled={!canEdit}
               onChange={(e) => updateField("priority", e.target.value)}
-              className={cn("text-xs font-bold uppercase px-3 py-1.5 rounded-lg border-none focus:outline-none", priorityColor(task.priority))}
+              className={cn(
+                "text-xs font-bold uppercase px-3 py-1.5 rounded-lg border-none focus:outline-none transition-all", 
+                priorityColor(task.priority),
+                !canEdit && "appearance-none cursor-default opacity-80"
+              )}
             >
               <option value="LOW">Low</option>
               <option value="MEDIUM">Medium</option>
               <option value="HIGH">High</option>
               <option value="URGENT">Urgent</option>
             </select>
+            {!canEdit && sessionStatus !== "loading" && (
+              <span className="text-[10px] text-muted-foreground font-medium italic ml-2">Read-only</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button 
