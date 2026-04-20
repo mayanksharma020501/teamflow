@@ -21,9 +21,12 @@ import {
   FileSpreadsheet,
   Zap,
   Trash2,
+  Shield,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 type Task = {
   id: string;
@@ -66,9 +69,14 @@ export default function TeamDetailPage() {
   const [typeFilter, setTypeFilter] = useState<"ALL" | "ONE_TIME" | "RECURRING">("ALL");
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
   const [deleteTasksOption, setDeleteTasksOption] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
+  const { data: session } = useSession();
+
+  const currentMember = team?.members.find(m => m.user.id === session?.user?.id);
+  const isOwner = currentMember?.role === "ADMIN";
 
   const filteredTasks = tasks.filter((t) => {
     return typeFilter === "ALL" || t.type === typeFilter;
@@ -197,11 +205,15 @@ export default function TeamDetailPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex -space-x-2 mr-2">
+            <button 
+              onClick={() => setShowMembers(true)}
+              className="flex -space-x-2 mr-2 p-1 rounded-xl hover:bg-accent transition-all group"
+              title="View team members"
+            >
               {team.members.slice(0, 5).map((m) => (
                 <div
                   key={m.id}
-                  className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-card shadow-sm"
+                  className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-card shadow-sm group-hover:ring-accent"
                   title={m.user.name || m.user.email}
                 >
                   {m.user.image ? (
@@ -211,7 +223,12 @@ export default function TeamDetailPage() {
                   )}
                 </div>
               ))}
-            </div>
+              {team.members.length > 5 && (
+                <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold text-muted-foreground ring-2 ring-card">
+                  +{team.members.length - 5}
+                </div>
+              )}
+            </button>
 
             <button
               onClick={() => setShowInvite(true)}
@@ -229,13 +246,15 @@ export default function TeamDetailPage() {
               {syncing ? "Syncing..." : "Sync"}
             </button>
 
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-2.5 rounded-xl border border-red-200 dark:border-red-900/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all"
-              title="Delete Team"
-            >
-              <Trash2 size={16} />
-            </button>
+            {isOwner && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="p-2.5 rounded-xl border border-red-200 dark:border-red-900/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all"
+                title="Delete Team"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
 
             <div className="flex items-center bg-accent/50 rounded-xl p-1 border border-border/50">
               <button onClick={() => setView("board")} className={cn("p-2 rounded-lg transition-all", view === "board" ? "bg-card shadow-sm text-indigo-600" : "text-muted-foreground")}>
@@ -370,6 +389,61 @@ export default function TeamDetailPage() {
           </div>
         </div>
       )}
+      {/* Member List Modal */}
+      {showMembers && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowMembers(false)} />
+          <div className="relative w-full max-w-md bg-card rounded-[32px] border border-border shadow-2xl p-8 mx-4 overflow-hidden">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold">Team Members</h2>
+              <button onClick={() => setShowMembers(false)} className="p-2 rounded-xl hover:bg-accent transition-all">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {team.members.map((member) => (
+                <div 
+                  key={member.id}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-accent/30 border border-border/50 transition-all hover:bg-accent/50"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                    {member.user.image ? (
+                      <img src={member.user.image} alt="" className="w-12 h-12 rounded-2xl" />
+                    ) : (
+                      getInitials(member.user.name || member.user.email)
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold truncate">{member.user.name || "Unknown User"}</p>
+                      {member.role === "ADMIN" && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 text-[10px] font-black uppercase tracking-tighter ring-1 ring-indigo-500/20">
+                          <Shield size={10} /> Owner
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{member.user.email}</p>
+                  </div>
+                  
+                  <div className="text-muted-foreground">
+                    <User size={16} className={cn(member.role === 'ADMIN' && "text-indigo-500")} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => setShowMembers(false)}
+              className="w-full mt-6 py-3.5 rounded-2xl bg-accent hover:bg-accent/80 font-bold text-sm transition-all"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Delete Team Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
