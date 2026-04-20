@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskForm } from "@/components/tasks/task-form";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
@@ -20,6 +20,7 @@ import {
   X,
   FileSpreadsheet,
   Zap,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -64,6 +65,10 @@ export default function TeamDetailPage() {
   const [defaultStatus, setDefaultStatus] = useState<string | undefined>();
   const [typeFilter, setTypeFilter] = useState<"ALL" | "ONE_TIME" | "RECURRING">("ALL");
   const [loading, setLoading] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTasksOption, setDeleteTasksOption] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
 
   const filteredTasks = tasks.filter((t) => {
     return typeFilter === "ALL" || t.type === typeFilter;
@@ -112,6 +117,27 @@ export default function TeamDetailPage() {
         toast.error(data.error || "Failed to send invite");
       }
     } catch { toast.error("Failed to send invite"); }
+  }
+
+  async function handleDeleteTeam() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/teams/${teamId}?deleteTasks=${deleteTasksOption}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        toast.success("Team deleted successfully");
+        router.push("/teams");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to delete team");
+      }
+    } catch {
+      toast.error("Failed to delete team");
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   }
 
   function handleNewTask(status?: string) {
@@ -201,6 +227,14 @@ export default function TeamDetailPage() {
             >
               <FileSpreadsheet size={14} className={cn(syncing && "animate-pulse text-green-500")} />
               {syncing ? "Syncing..." : "Sync"}
+            </button>
+
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-2.5 rounded-xl border border-red-200 dark:border-red-900/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all"
+              title="Delete Team"
+            >
+              <Trash2 size={16} />
             </button>
 
             <div className="flex items-center bg-accent/50 rounded-xl p-1 border border-border/50">
@@ -333,6 +367,65 @@ export default function TeamDetailPage() {
                 Send Invite
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Delete Team Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="relative w-full max-w-md bg-card rounded-[32px] border border-border shadow-2xl p-8 mx-4 overflow-hidden">
+            {/* Warning Glow */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-red-500/10 blur-[60px] rounded-full" />
+            
+            <div className="relative z-10 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-6">
+                <Trash2 className="w-8 h-8 text-red-500" />
+              </div>
+              
+              <h2 className="text-2xl font-black mb-2 tracking-tight">Delete Team?</h2>
+              <p className="text-muted-foreground text-sm mb-8">
+                This action is permanent. You are about to delete <span className="text-foreground font-bold">{team.name}</span>.
+              </p>
+
+              <div className="bg-accent/30 rounded-2xl p-5 mb-8 border border-border/50 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1">
+                    <input 
+                      type="checkbox" 
+                      id="deleteTasks"
+                      checked={deleteTasksOption}
+                      onChange={(e) => setDeleteTasksOption(e.target.checked)}
+                      className="w-4 h-4 rounded border-border text-red-500 focus:ring-red-500/20 cursor-pointer"
+                    />
+                  </div>
+                  <label htmlFor="deleteTasks" className="flex-1 cursor-pointer">
+                    <p className="text-sm font-bold text-foreground">Delete all team tasks</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
+                      {deleteTasksOption 
+                        ? "Every task, comment, and attachment in this team will be permanently deleted." 
+                        : "Tasks will be kept but converted to personal tasks."}
+                    </p>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-3.5 rounded-2xl border border-border text-sm font-bold hover:bg-accent transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleDeleteTeam}
+                  disabled={deleting}
+                  className="flex-1 py-3.5 rounded-2xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {deleting ? "Deleting..." : "Delete Team"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

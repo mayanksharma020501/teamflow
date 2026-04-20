@@ -58,15 +58,38 @@ export async function DELETE(
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { teamId } = await params;
+  const { searchParams } = new URL(req.url);
+  const deleteTasks = searchParams.get("deleteTasks") === "true";
 
-  // Check if user is admin
-  const member = await prisma.teamMember.findUnique({
-    where: { teamId_userId: { userId: session.user.id, teamId } },
-  });
-  if (!member || member.role !== "ADMIN") {
-    return NextResponse.json({ error: "Only admins can delete teams" }, { status: 403 });
+  try {
+    // Check if user is admin
+    const member = await prisma.teamMember.findUnique({
+      where: { teamId_userId: { userId: session.user.id, teamId } },
+    });
+    
+    if (!member || member.role !== "ADMIN") {
+      return NextResponse.json({ error: "Only admins can delete teams" }, { status: 403 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (deleteTasks) {
+        // 1. Delete all tasks in this team
+        await tx.task.deleteMany({ where: { teamId } });
+      } else {
+        // 2. Detach tasks from team (make them personal)
+        await tx.task.updateMany({
+          where: { teamId },
+          data: { teamId: null, isPersonal: true },
+        });
+      }
+
+      // 3. Delete the team itself
+      await tx.team.delete({ where: { id: teamId } });
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete team error:", error);
+    return NextResponse.json({ error: "Failed to delete team" }, { status: 500 });
   }
-
-  await prisma.team.delete({ where: { id: teamId } });
-  return NextResponse.json({ success: true });
 }
