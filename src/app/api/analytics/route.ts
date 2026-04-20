@@ -62,11 +62,20 @@ export async function GET() {
       }
     });
 
+    const personalCount = await prisma.task.count({
+      where: { creatorId: userId, isPersonal: true }
+    });
+
+    const finalTeamData = [
+      { name: "Personal", value: personalCount },
+      ...teamCounts.map(t => ({ name: t.name, value: t._count.tasks }))
+    ];
+
     return NextResponse.json({
       statusData: statusCounts.map(s => ({ name: s.status, value: s._count })),
       priorityData: priorityCounts.map(p => ({ name: p.priority, value: p._count })),
       trendData: completionTrend,
-      teamData: teamCounts.map(t => ({ name: t.name, value: t._count.tasks })),
+      teamData: finalTeamData,
       totalTasks: statusCounts.reduce((acc, s) => acc + s._count, 0),
       completedCount: statusCounts.find(s => s.status === "DONE")?._count || 0,
     });
