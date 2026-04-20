@@ -32,11 +32,10 @@ export async function GET(req: Request) {
     } else if (scope.startsWith("team:")) {
       where.teamId = scope.split(":")[1];
     } else {
-      // "all" - My Tasks logic: Created by me OR assigned to me OR in my teams
+      // "all" - My Tasks logic: Tasks assigned to me OR Personal tasks created by me
       where.OR = [
-        { creatorId: userId },
         { assignees: { some: { userId } } },
-        { team: { members: { some: { userId } } } }
+        { AND: [{ creatorId: userId }, { isPersonal: true }] }
       ];
     }
 
