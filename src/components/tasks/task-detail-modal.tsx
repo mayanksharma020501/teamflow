@@ -14,7 +14,7 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ taskId, onClose, onUpdated }: TaskDetailModalProps) {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +98,6 @@ export function TaskDetailModal({ taskId, onClose, onUpdated }: TaskDetailModalP
 
   if (!task) return null;
 
-  const { status: sessionStatus } = useSession();
   const completedSubtasks = task.subtasks?.filter((s: { status: string }) => s.status === "DONE").length || 0;
   
   // Wait for session and task to be ready
