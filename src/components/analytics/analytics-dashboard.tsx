@@ -29,11 +29,25 @@ const GENERIC_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "
 export function AnalyticsDashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [scope, setScope] = useState("all"); // all, personal, team:[id]
+  const [period, setPeriod] = useState("this-week"); // today, this-week, this-month, last-30
+
+  useEffect(() => {
+    async function fetchTeams() {
+      const res = await fetch("/api/teams");
+      const json = await res.json();
+      setTeams(json);
+    }
+    fetchTeams();
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
       try {
-        const res = await fetch("/api/analytics");
+        const query = new URLSearchParams({ scope, period });
+        const res = await fetch(`/api/analytics?${query.toString()}`);
         const json = await res.json();
         setData(json);
       } catch (err) {
@@ -43,9 +57,16 @@ export function AnalyticsDashboard() {
       }
     }
     fetchData();
-  }, []);
+  }, [scope, period]);
 
-  if (loading) {
+  const PeriodOptions = [
+    { label: "Today", value: "today" },
+    { label: "This Week", value: "this-week" },
+    { label: "This Month", value: "this-month" },
+    { label: "Last 30 Days", value: "last-30" },
+  ];
+
+  if (loading && !data) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -61,6 +82,39 @@ export function AnalyticsDashboard() {
 
   return (
     <div className="space-y-8 pb-12">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-end items-start sm:items-center">
+        <div className="flex items-center gap-2 bg-card border border-border/50 rounded-2xl px-3 py-1.5 shadow-sm">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Scope</span>
+          <select 
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            className="bg-transparent border-none text-xs font-semibold focus:ring-0 outline-none cursor-pointer"
+          >
+            <option value="all">My Tasks</option>
+            <option value="personal">Personal Only</option>
+            <optgroup label="Teams">
+              {teams.map((t: any) => (
+                <option key={t.id} value={`team:${t.id}`}>{t.name}</option>
+              ))}
+            </optgroup>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2 bg-card border border-border/50 rounded-2xl px-3 py-1.5 shadow-sm">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Period</span>
+          <select 
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="bg-transparent border-none text-xs font-semibold focus:ring-0 outline-none cursor-pointer"
+          >
+            {PeriodOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
