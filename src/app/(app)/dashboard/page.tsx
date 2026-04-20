@@ -323,7 +323,7 @@ export default function DashboardPage() {
 
             {/* Bar Chart */}
             <div className="bg-card rounded-xl border border-border/50 p-6">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Weekly Overview</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-4">Overview</h3>
               {pieData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={160}>
                   <BarChart data={pieData}>
