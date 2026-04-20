@@ -23,10 +23,37 @@ import {
   Trash2,
   Shield,
   User,
+  Search,
+  Filter,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { isToday, isYesterday, isTomorrow, isThisWeek, isPast, isFuture, startOfDay, addWeeks, isSameWeek } from "date-fns";
+import { FilterDropdown } from "@/components/tasks/filter-dropdown";
+
+const STATUS_OPTIONS = [
+  { label: "To Do", value: "TODO" },
+  { label: "In Progress", value: "IN_PROGRESS" },
+  { label: "Review", value: "REVIEW" },
+  { label: "Done", value: "DONE" },
+];
+
+const PRIORITY_OPTIONS = [
+  { label: "Low", value: "LOW" },
+  { label: "Medium", value: "MEDIUM" },
+  { label: "High", value: "HIGH" },
+  { label: "Urgent", value: "URGENT" },
+];
+
+const DUE_DATE_OPTIONS = [
+  { label: "Overdue", value: "OVERDUE" },
+  { label: "Today", value: "TODAY" },
+  { label: "Tomorrow", value: "TOMORROW" },
+  { label: "This Week", value: "THIS_WEEK" },
+  { label: "Next Week", value: "NEXT_WEEK" },
+];
 
 type Task = {
   id: string;
@@ -60,27 +87,87 @@ export default function TeamDetailPage() {
   const teamId = params.teamId as string;
   const [team, setTeam] = useState<Team | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [view, setView] = useState<"board" | "list">("board");
+  const [view, setView] = useState<"board" | "list">("list");
   const [showForm, setShowForm] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [defaultStatus, setDefaultStatus] = useState<string | undefined>();
   const [typeFilter, setTypeFilter] = useState<"ALL" | "ONE_TIME" | "RECURRING">("ALL");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [deleteTasksOption, setDeleteTasksOption] = useState(true);
   const [deleting, setDeleting] = useState(false);
+
+  // Column Filter State
+  const [columnFilters, setColumnFilters] = useState({
+    status: [] as string[],
+    priority: [] as string[],
+    assignees: [] as string[],
+    dueDate: [] as string[],
+  });
+  const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
   const router = useRouter();
   const { data: session } = useSession();
 
   const currentMember = team?.members.find(m => m.user.id === session?.user?.id);
   const isOwner = currentMember?.role === "ADMIN";
 
+  // Extract unique assignees from loaded tasks
+  const assigneeOptions = [
+    { label: "Unassigned", value: "UNASSIGNED" },
+    ...Array.from(
+      new Map(
+        tasks.flatMap((t) => t.assignees.map((a) => [a.user.id, a.user.name || "Unknown User"]))
+      )
+    ).map(([value, label]) => ({ label, value }))
+  ];
+
   const filteredTasks = tasks.filter((t) => {
-    return typeFilter === "ALL" || t.type === typeFilter;
+    const matchesType = typeFilter === "ALL" || t.type === typeFilter;
+    if (!matchesType) return false;
+
+    // Search
+    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
+
+    // Column Filters
+    if (columnFilters.status.length > 0 && !columnFilters.status.includes(t.status)) return false;
+    if (columnFilters.priority.length > 0 && !columnFilters.priority.includes(t.priority)) return false;
+    
+    if (columnFilters.assignees.length > 0) {
+      const isUnassignedSelected = columnFilters.assignees.includes("UNASSIGNED");
+      const isAssignedToUser = t.assignees.some((a) => columnFilters.assignees.includes(a.user.id));
+      if (!isAssignedToUser && !(isUnassignedSelected && t.assignees.length === 0)) return false;
+    }
+    
+    if (columnFilters.dueDate.length > 0) {
+      const date = t.dueDate ? new Date(t.dueDate) : null;
+      const matchesDate = columnFilters.dueDate.some((f) => {
+        if (f === "NO_DATE") return !date;
+        if (!date) return false;
+        if (f === "OVERDUE") return isPast(date) && !isToday(date);
+        if (f === "TODAY") return isToday(date);
+        if (f === "TOMORROW") return isTomorrow(date);
+        if (f === "THIS_WEEK") return isThisWeek(date, { weekStartsOn: 1 });
+        if (f === "NEXT_WEEK") {
+          const nextWeek = addWeeks(new Date(), 1);
+          return isSameWeek(date, nextWeek, { weekStartsOn: 1 });
+        }
+        return false;
+      });
+      if (!matchesDate) return false;
+    }
+
+    return true;
   });
+
+  const hasActiveFilters = 
+    columnFilters.status.length > 0 || 
+    columnFilters.priority.length > 0 || 
+    columnFilters.assignees.length > 0 || 
+    columnFilters.dueDate.length > 0;
 
   const fetchData = useCallback(async () => {
     try {
@@ -275,29 +362,52 @@ export default function TeamDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-start bg-card/50 p-1.5 rounded-2xl border border-border/50 backdrop-blur-sm">
-          <button
-            onClick={() => setTypeFilter("ONE_TIME")}
-            className={cn(
-              "px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
-              typeFilter === "ONE_TIME" 
-                ? "bg-indigo-600 text-white shadow-lg" 
-                : "text-muted-foreground hover:bg-accent"
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-card/50 p-1.5 rounded-2xl border border-border/50 backdrop-blur-sm gap-2">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setTypeFilter("ONE_TIME")}
+              className={cn(
+                "flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
+                typeFilter === "ONE_TIME" 
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
+                  : "text-muted-foreground hover:bg-accent"
+              )}
+            >
+              <CheckSquare size={16} /> <span className="hidden sm:inline">Team Tasks</span><span className="sm:hidden">Tasks</span>
+            </button>
+            <button
+              onClick={() => setTypeFilter("RECURRING")}
+              className={cn(
+                "flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
+                typeFilter === "RECURRING" 
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
+                  : "text-muted-foreground hover:bg-accent"
+              )}
+            >
+              <Zap size={16} /> <span className="hidden sm:inline">Team Automations</span><span className="sm:hidden">Auto</span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between lg:justify-end gap-2 px-2 pb-1 lg:pb-0">
+            {hasActiveFilters && (
+              <button
+                onClick={() => setColumnFilters({ status: [], priority: [], assignees: [], dueDate: [] })}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all"
+              >
+                <X size={14} /> <span className="hidden sm:inline">Clear Filters</span>
+              </button>
             )}
-          >
-            <CheckSquare size={16} /> Team Tasks
-          </button>
-          <button
-            onClick={() => setTypeFilter("RECURRING")}
-            className={cn(
-              "px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
-              typeFilter === "RECURRING" 
-                ? "bg-indigo-600 text-white shadow-lg" 
-                : "text-muted-foreground hover:bg-accent"
-            )}
-          >
-            <Zap size={16} /> Team Automations
-          </button>
+            <div className="relative flex-1 lg:flex-none">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search tasks..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 pr-4 py-2 bg-transparent text-sm w-full lg:w-48 focus:outline-none lg:focus:w-64 transition-all"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -306,39 +416,179 @@ export default function TeamDetailPage() {
         <KanbanBoard tasks={filteredTasks} onStatusChange={handleStatusChange} onNewTask={handleNewTask} onTaskClick={setActiveTaskId} />
       ) : (
         <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/50 text-xs text-muted-foreground uppercase">
-                <th className="text-left py-3 px-4 font-semibold">Task</th>
-                <th className="text-left py-3 px-4 font-semibold">Status</th>
-                <th className="text-left py-3 px-4 font-semibold">Priority</th>
-                <th className="text-left py-3 px-4 font-semibold">Due Date</th>
-                <th className="text-left py-3 px-4 font-semibold">Assignees</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTasks.map((task) => (
-                <tr key={task.id} onClick={() => setActiveTaskId(task.id)} className="border-b border-border/30 hover:bg-accent/30 transition-colors cursor-pointer">
-                  <td className="py-3 px-4"><span className="text-sm font-medium">{task.title}</span></td>
-                  <td className="py-3 px-4"><span className="text-xs font-medium px-2 py-1 rounded-md bg-accent">{statusLabel(task.status)}</span></td>
-                  <td className="py-3 px-4"><span className={cn("text-xs font-bold uppercase px-2 py-1 rounded-md", priorityColor(task.priority))}>{task.priority}</span></td>
-                  <td className="py-3 px-4">{task.dueDate ? <span className="text-xs text-muted-foreground">{formatRelativeDate(task.dueDate)}</span> : "—"}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex -space-x-1">
-                      {task.assignees.slice(0, 3).map((a) => (
-                        <div key={a.user.id} className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 text-[9px] text-white font-bold flex items-center justify-center ring-2 ring-card">
-                          {a.user.name?.[0]?.toUpperCase() || "?"}
-                        </div>
-                      ))}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border/50 text-[10px] text-muted-foreground uppercase tracking-wider">
+                  <th className="text-left py-4 px-4 font-bold">Task</th>
+                  <th className="text-left py-4 px-4 font-bold">
+                    <div className="flex items-center">
+                      Status
+                      <FilterDropdown
+                        label="Status"
+                        options={STATUS_OPTIONS}
+                        selected={columnFilters.status}
+                        onChange={(v) => setColumnFilters((p) => ({ ...p, status: v }))}
+                        isOpen={openFilterCol === "status"}
+                        onToggle={() => setOpenFilterCol(openFilterCol === "status" ? null : "status")}
+                      />
                     </div>
-                  </td>
+                  </th>
+                  <th className="text-left py-4 px-4 font-bold">
+                    <div className="flex items-center">
+                      Priority
+                      <FilterDropdown
+                        label="Priority"
+                        options={PRIORITY_OPTIONS}
+                        selected={columnFilters.priority}
+                        onChange={(v) => setColumnFilters((p) => ({ ...p, priority: v }))}
+                        isOpen={openFilterCol === "priority"}
+                        onToggle={() => setOpenFilterCol(openFilterCol === "priority" ? null : "priority")}
+                      />
+                    </div>
+                  </th>
+                  <th className="text-left py-4 px-4 font-bold">
+                    <div className="flex items-center">
+                      Due Date
+                      <FilterDropdown
+                        label="Due Date"
+                        options={DUE_DATE_OPTIONS}
+                        selected={columnFilters.dueDate}
+                        onChange={(v) => setColumnFilters((p) => ({ ...p, dueDate: v }))}
+                        isOpen={openFilterCol === "dueDate"}
+                        onToggle={() => setOpenFilterCol(openFilterCol === "dueDate" ? null : "dueDate")}
+                      />
+                    </div>
+                  </th>
+                  <th className="text-left py-4 px-4 font-bold">
+                    <div className="flex items-center">
+                      Assignees
+                      <FilterDropdown
+                        label="Assignees"
+                        options={assigneeOptions}
+                        selected={columnFilters.assignees}
+                        onChange={(v) => setColumnFilters((p) => ({ ...p, assignees: v }))}
+                        isOpen={openFilterCol === "assignees"}
+                        onToggle={() => setOpenFilterCol(openFilterCol === "assignees" ? null : "assignees")}
+                      />
+                    </div>
+                  </th>
                 </tr>
-              ))}
-              {tasks.length === 0 && (
-                <tr><td colSpan={5} className="py-16 text-center text-muted-foreground">No tasks yet. Create your first task!</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredTasks.map((task) => (
+                  <tr
+                    key={task.id}
+                    onClick={() => setActiveTaskId(task.id)}
+                    className="border-b border-border/30 hover:bg-accent/30 transition-all cursor-pointer group"
+                  >
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full flex-shrink-0",
+                          task.status === "DONE" ? "bg-green-500" : "bg-muted-foreground/30"
+                        )} />
+                        <div className="flex flex-col gap-1 flex-1 min-w-0">
+                          <span className={cn(
+                            "text-sm font-semibold transition-colors group-hover:text-indigo-600 truncate",
+                            task.status === "DONE" && "text-muted-foreground line-through decoration-2"
+                          )}>
+                            {task.title}
+                          </span>
+                          {task.subtasks?.length > 0 && (
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-1 bg-accent rounded-full overflow-hidden max-w-[60px]">
+                                <div 
+                                  className="h-full bg-indigo-500 transition-all duration-500" 
+                                  style={{ width: `${(task.subtasks.filter((s: any) => s.status === 'DONE').length / task.subtasks.length) * 100}%` }}
+                                />
+                              </div>
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase whitespace-nowrap">
+                                {task.subtasks.filter((s: any) => s.status === 'DONE').length}/{task.subtasks.length}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-accent text-accent-foreground uppercase tracking-wider">
+                        {statusLabel(task.status)}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase px-2.5 py-1 rounded-full tracking-wider shadow-sm",
+                        priorityColor(task.priority)
+                      )}>
+                        {task.priority}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      {task.dueDate ? (
+                        <span className={cn(
+                          "flex items-center gap-1.5 text-xs font-medium",
+                          isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate)) && task.status !== "DONE" 
+                            ? "text-red-500" 
+                            : "text-muted-foreground"
+                        )}>
+                          <Calendar size={13} />
+                          {formatRelativeDate(task.dueDate)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic opacity-50">—</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex -space-x-1.5 overflow-hidden">
+                        {task.assignees.slice(0, 3).map((a) => (
+                          <div
+                            key={a.user.id}
+                            title={a.user.name || "User"}
+                            className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-[10px] text-white font-bold flex items-center justify-center ring-2 ring-card shadow-sm"
+                          >
+                            {a.user.image ? (
+                              <img src={a.user.image} alt="" className="w-full h-full rounded-full object-cover" />
+                            ) : (
+                              a.user.name?.[0]?.toUpperCase() || "?"
+                            )}
+                          </div>
+                        ))}
+                        {task.assignees.length > 3 && (
+                          <div className="w-7 h-7 rounded-full bg-accent text-[9px] font-bold flex items-center justify-center ring-2 ring-card text-muted-foreground">
+                            +{task.assignees.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredTasks.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-24 text-center text-muted-foreground">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-16 h-16 rounded-full bg-accent/50 flex items-center justify-center text-3xl">
+                          🔍
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-foreground">No tasks match your filters</p>
+                          <p className="text-sm">Try adjusting your filters or search query</p>
+                        </div>
+                        {hasActiveFilters && (
+                          <button
+                            onClick={() => setColumnFilters({ status: [], priority: [], assignees: [], dueDate: [] })}
+                            className="mt-2 text-indigo-600 font-semibold hover:underline"
+                          >
+                            Clear all filters
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
