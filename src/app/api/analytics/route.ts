@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { startOfDay, subDays, format } from "date-fns";
+import { startOfDay, subDays, format, startOfWeek, startOfMonth } from "date-fns";
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -16,28 +16,39 @@ export async function GET(req: Request) {
     
     // 1. Calculate Time Range
     const now = new Date();
-    let startDate = startOfDay(subDays(now, 7));
+    let startDate = startOfWeek(now); // Default to current calendar week
     if (period === "today") startDate = startOfDay(now);
-    else if (period === "this-month") startDate = startOfDay(new Date(now.getFullYear(), now.getMonth(), 1));
+    else if (period === "this-month") startDate = startOfMonth(now);
     else if (period === "last-30") startDate = startOfDay(subDays(now, 30));
+    else if (period === "this-week") startDate = startOfWeek(now);
 
     // 2. Build Scope Filter
-    const where: any = {
-      createdAt: { gte: startDate }
-    };
+    const baseWhere: any = {};
 
     if (scope === "personal") {
-      where.isPersonal = true;
-      where.creatorId = userId;
+      baseWhere.isPersonal = true;
+      baseWhere.creatorId = userId;
     } else if (scope.startsWith("team:")) {
-      where.teamId = scope.split(":")[1];
+      baseWhere.teamId = scope.split(":")[1];
     } else {
       // "all" - My Tasks logic: Tasks assigned to me OR Personal tasks created by me
-      where.OR = [
+      baseWhere.OR = [
         { assignees: { some: { userId } } },
         { AND: [{ creatorId: userId }, { isPersonal: true }] }
       ];
     }
+
+    // Smart Filter: Show ALL active tasks, but only DONE tasks from this period
+    const where: any = {
+      ...baseWhere,
+      OR: [
+        { status: { in: ["TODO", "IN_PROGRESS", "REVIEW"] } },
+        { 
+          status: "DONE",
+          completedAt: { gte: startDate }
+        }
+      ]
+    };
 
     // 3. Tasks by Status
     const statusCounts = await prisma.task.groupBy({
@@ -76,18 +87,29 @@ export async function GET(req: Request) {
     // 6. Team Distribution (if scope is not specific team)
     let teamData: any[] = [];
     if (!scope.startsWith("team:")) {
+      const smartWhere = {
+        OR: [
+          { status: { in: ["TODO", "IN_PROGRESS", "REVIEW"] } },
+          { status: "DONE", completedAt: { gte: startDate } }
+        ]
+      };
+
       const teamCounts = await prisma.team.findMany({
         where: { members: { some: { userId } } },
         select: {
           name: true,
           _count: {
-            select: { tasks: { where: { createdAt: { gte: startDate } } } }
+            select: { tasks: { where: smartWhere as any } }
           }
         }
       });
 
       const personalCount = await prisma.task.count({
-        where: { creatorId: userId, isPersonal: true, createdAt: { gte: startDate } }
+        where: { 
+          creatorId: userId, 
+          isPersonal: true, 
+          ...smartWhere 
+        } as any
       });
 
       teamData = [
