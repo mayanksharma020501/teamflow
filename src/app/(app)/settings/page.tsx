@@ -39,7 +39,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ name, notifications: notifs }),
       });
       if (res.ok) {
-        await update();
+        await update({ name });
         toast.success("Settings saved!");
       }
     } catch {
