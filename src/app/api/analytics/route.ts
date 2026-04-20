@@ -130,6 +130,7 @@ export async function GET(req: Request) {
       trendData,
       teamData,
       totalTasks: statusCounts.reduce((acc, s) => acc + s._count, 0),
+      activeCount: statusCounts.filter(s => s.status !== "DONE").reduce((acc, s) => acc + s._count, 0),
       completedCount: statusCounts.find(s => s.status === "DONE")?._count || 0,
     });
   } catch (error) {

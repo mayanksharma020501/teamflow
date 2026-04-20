@@ -118,8 +118,8 @@ export function AnalyticsDashboard() {
       {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-          label="Total Tasks" 
-          value={data.totalTasks} 
+          label="Active Tasks" 
+          value={data.activeCount} 
           icon={Target} 
           trend="+12%" 
           trendUp={true}
