@@ -423,7 +423,14 @@ export async function getDashboardStats(userId: string, startDate?: Date, endDat
     }),
     prisma.task.groupBy({
       by: ["status"],
-      where: { ...baseWhere, createdAt: { gte: start, lt: end } } as never,
+      where: {
+        ...baseWhere,
+        OR: [
+          { dueDate: { gte: start, lt: end } },
+          { dueDate: { lt: start }, status: { not: "DONE" } },
+          { status: "DONE", completedAt: { gte: start, lt: end } }
+        ]
+      } as never,
       _count: true,
     }),
     prisma.task.count({
