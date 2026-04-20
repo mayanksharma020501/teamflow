@@ -8,7 +8,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session: updateSession }) {
       if (user) {
         token.id = user.id;
         
@@ -35,6 +35,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.name = dbUser.name ?? user.name;
         }
       }
+
+      // Handle session updates (e.g. name change)
+      if (trigger === "update" && token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { name: true, onboarded: true, globalRole: true },
+        });
+        if (dbUser) {
+          token.name = dbUser.name;
+          token.onboarded = dbUser.onboarded;
+          token.globalRole = dbUser.globalRole;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
