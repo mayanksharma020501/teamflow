@@ -17,12 +17,14 @@ import {
   Zap,
   Plus,
   X,
+  BarChart3,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/tasks", label: "My Tasks", icon: CheckSquare },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/teams", label: "Teams", icon: Users },
