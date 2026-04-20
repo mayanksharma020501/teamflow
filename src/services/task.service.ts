@@ -399,7 +399,7 @@ export async function getDashboardStats(userId: string, startDate?: Date, endDat
     ],
   };
 
-  const [dueInPeriod, overdue, completedInPeriod, upcoming, totalByStatus, activeAutomations, totalInPeriod] = await Promise.all([
+  const [dueInPeriod, overdue, completedInPeriod, upcoming, totalByStatus, activeAutomations] = await Promise.all([
     prisma.task.count({
       where: { ...baseWhere, dueDate: { gte: start, lt: end }, status: { not: "DONE" } } as never,
     }),
@@ -423,16 +423,15 @@ export async function getDashboardStats(userId: string, startDate?: Date, endDat
     prisma.task.count({
       where: { ...baseWhere, type: "RECURRING" } as never,
     }),
-    prisma.task.count({
-      where: { ...baseWhere, createdAt: { gte: start, lt: end } } as never,
-    }),
   ]);
 
   return { 
     dueInPeriod, 
     overdue, 
     completedInPeriod, 
-    completionRate: totalInPeriod > 0 ? Math.round((completedInPeriod / totalInPeriod) * 100) : 0,
+    completionRate: (dueInPeriod + overdue + completedInPeriod) > 0 
+      ? Math.round((completedInPeriod / (dueInPeriod + overdue + completedInPeriod)) * 100) 
+      : 0,
     upcoming, 
     totalByStatus, 
     activeAutomations: activeAutomations || 0,
