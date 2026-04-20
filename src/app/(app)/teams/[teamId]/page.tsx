@@ -112,7 +112,7 @@ export default function TeamDetailPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  const currentMember = team?.members.find(m => m.user.id === session?.user?.id);
+  const currentMember = team?.members?.find(m => m.user.id === session?.user?.id);
   const isOwner = currentMember?.role === "ADMIN";
 
   // Extract unique assignees from loaded tasks
@@ -120,7 +120,7 @@ export default function TeamDetailPage() {
     { label: "Unassigned", value: "UNASSIGNED" },
     ...Array.from(
       new Map(
-        tasks.flatMap((t) => t.assignees.map((a) => [a.user.id, a.user.name || "Unknown User"]))
+        tasks.flatMap((t) => t.assignees?.map((a) => [a.user.id, a.user.name || "Unknown User"]) || [])
       )
     ).map(([value, label]) => ({ label, value }))
   ];
