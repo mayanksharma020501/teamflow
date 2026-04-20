@@ -258,7 +258,10 @@ function TasksContent() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">My Tasks</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {filteredTasks.length} {typeFilter === "RECURRING" ? "automation rules" : "active tasks"}
+              {typeFilter === "RECURRING" 
+                ? filteredTasks.length 
+                : filteredTasks.filter(t => t.status !== "DONE").length
+              } {typeFilter === "RECURRING" ? "automation rules" : "active tasks"}
             </p>
           </div>
           <div className="flex items-center gap-3">

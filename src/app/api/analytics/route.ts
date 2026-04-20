@@ -46,12 +46,16 @@ export async function GET(req: Request) {
 
     // Smart Filter: Show ALL active tasks, but only DONE tasks from this period
     const where: any = {
-      ...baseWhere,
-      OR: [
-        { status: { in: ["TODO", "IN_PROGRESS", "REVIEW"] } },
-        { 
-          status: "DONE",
-          completedAt: { gte: startDate }
+      AND: [
+        baseWhere,
+        {
+          OR: [
+            { status: { in: ["TODO", "IN_PROGRESS", "REVIEW"] } },
+            { 
+              status: "DONE",
+              completedAt: { gte: startDate }
+            }
+          ]
         }
       ]
     };
@@ -93,28 +97,22 @@ export async function GET(req: Request) {
     // 6. Team Distribution (if scope is not specific team)
     let teamData: any[] = [];
     if (!scope.startsWith("team:")) {
-      const smartWhere = {
-        OR: [
-          { status: { in: ["TODO", "IN_PROGRESS", "REVIEW"] } },
-          { status: "DONE", completedAt: { gte: startDate } }
-        ]
-      };
-
       const teamCounts = await prisma.team.findMany({
         where: { members: { some: { userId } } },
         select: {
           name: true,
           _count: {
-            select: { tasks: { where: smartWhere as any } }
+            select: { tasks: { where: where as any } }
           }
         }
       });
 
       const personalCount = await prisma.task.count({
         where: { 
-          creatorId: userId, 
-          isPersonal: true, 
-          ...smartWhere 
+          AND: [
+            { isPersonal: true },
+            where
+          ]
         } as any
       });
 
