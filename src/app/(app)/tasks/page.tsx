@@ -386,7 +386,7 @@ function TasksContent() {
           <div className="flex items-center justify-between lg:justify-end gap-2 px-2 pb-1 lg:pb-0">
             {hasActiveFilters && (
               <button
-                onClick={() => setColumnFilters({ status: [], priority: [], assignees: [], dueDate: [] })}
+                onClick={() => setColumnFilters({ status: [], priority: [], assignees: [], dueDate: [], teams: [] })}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all"
               >
                 <X size={14} /> <span className="hidden sm:inline">Clear Filters</span>
@@ -653,7 +653,7 @@ function TasksContent() {
                       </div>
                       {hasActiveFilters && (
                         <button
-                          onClick={() => setColumnFilters({ status: [], priority: [], assignees: [], dueDate: [] })}
+                          onClick={() => setColumnFilters({ status: [], priority: [], assignees: [], dueDate: [], teams: [] })}
                           className="mt-2 text-indigo-600 font-semibold hover:underline"
                         >
                           Clear all filters
