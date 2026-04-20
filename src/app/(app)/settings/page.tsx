@@ -10,12 +10,19 @@ import { cn, getInitials } from "@/lib/utils";
 export default function SettingsPage() {
   const { data: session, update } = useSession();
   const { theme, setTheme } = useTheme();
-  const [name, setName] = useState(session?.user?.name || "");
+  const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [notifs, setNotifs] = useState({
     onAssigned: true, onDueDate: true, onMention: true,
     onStatusChange: true, onRecurring: true, weeklyDigest: false,
   });
+
+  // Sync name state when session loads
+  useEffect(() => {
+    if (session?.user?.name && !name) {
+      setName(session.user.name);
+    }
+  }, [session, name]);
 
   const themes = [
     { value: "light", label: "Light", icon: Sun },
@@ -154,15 +161,20 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Save */}
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50"
-      >
-        <Save size={16} />
-        {saving ? "Saving..." : "Save Changes"}
-      </button>
+      {/* Floating Save Bar */}
+      <div className="fixed bottom-8 right-8 z-50">
+        <button
+          onClick={handleSave}
+          disabled={saving || (name === session?.user?.name)}
+          className={cn(
+            "flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white shadow-2xl transition-all active:scale-95 disabled:opacity-50 disabled:grayscale",
+            saving ? "bg-indigo-400" : "bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:shadow-indigo-500/25"
+          )}
+        >
+          <Save size={18} />
+          {saving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
     </div>
   );
 }
