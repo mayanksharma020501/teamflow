@@ -98,3 +98,30 @@ export function buildInvitationEmailHtml(teamName: string, inviterName: string, 
     </div>
   `;
 }
+export function buildStatusUpdateEmailHtml(taskTitle: string, oldStatus: string, newStatus: string, updaterName: string, taskUrl: string) {
+  return `
+    <div style="font-family: 'Inter', sans-serif; max-w: 600px; margin: 0 auto; padding: 40px 20px; color: #111827;">
+      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 32px; border-radius: 24px; color: white; margin-bottom: 32px; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 800;">Task Status Updated</h1>
+      </div>
+      <p style="font-size: 16px; line-height: 1.6;"><strong>${updaterName}</strong> updated the status of your task:</p>
+      <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 24px; border-radius: 16px; margin: 24px 0; text-align: center;">
+        <h3 style="margin: 0 0 12px 0; font-size: 18px; color: #111827;">${taskTitle}</h3>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px;">
+          <span style="background-color: #f3f4f6; color: #6b7280; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; text-transform: uppercase;">${oldStatus}</span>
+          <span style="color: #9ca3af; font-size: 18px;">&rarr;</span>
+          <span style="background-color: #10b981; color: white; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; text-transform: uppercase;">${newStatus}</span>
+        </div>
+      </div>
+      <div style="text-align: center;">
+        <a href="${taskUrl}" style="display: inline-block; background-color: #10b981; color: white; padding: 16px 32px; text-decoration: none; border-radius: 16px; font-weight: 700; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);">
+          View Task
+        </a>
+      </div>
+      <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 40px 0;">
+      <p style="font-size: 12px; text-align: center; color: #6b7280;">
+        TeamFlow Productivity App. You received this because your notification preferences are enabled.
+      </p>
+    </div>
+  `;
+}

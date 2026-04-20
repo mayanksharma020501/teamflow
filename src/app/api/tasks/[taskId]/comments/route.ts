@@ -135,6 +135,23 @@ export async function POST(
               userId: pid,
             },
           });
+
+          // Send email if enabled
+          const participant = await prisma.user.findUnique({
+            where: { id: pid },
+            include: { notificationPrefs: true }
+          });
+
+          if (participant?.email && participant.notificationPrefs?.onComment) {
+            const { sendEmail, buildMentionEmailHtml } = await import("@/lib/email");
+            const html = buildMentionEmailHtml(
+              task.title,
+              data.content.substring(0, 100) + (data.content.length > 100 ? "..." : ""),
+              session.user.name || "A team member",
+              `${process.env.NEXTAUTH_URL}/tasks?taskId=${taskId}`
+            );
+            await sendEmail({ to: participant.email, subject: `New Comment: ${task.title}`, html });
+          }
         }
       }
     } catch (commentNotifyError) {

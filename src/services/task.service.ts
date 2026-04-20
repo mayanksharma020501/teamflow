@@ -292,11 +292,52 @@ export async function updateTask(taskId: string, userId: string, data: TaskUpdat
   });
 
   if (data.assigneeIds) {
+    const oldAssigneeIds = oldTask.assignees.map(a => a.userId);
+    const newAssigneeIds = data.assigneeIds.filter(id => !oldAssigneeIds.includes(id));
+
     await prisma.taskAssignee.deleteMany({ where: { taskId } });
     if (data.assigneeIds.length > 0) {
       await prisma.taskAssignee.createMany({
         data: data.assigneeIds.map((uid) => ({ taskId, userId: uid })),
       });
+    }
+
+    // Notify new assignees
+    if (newAssigneeIds.length > 0) {
+      try {
+        const { sendEmail, buildAssignmentEmailHtml } = await import("@/lib/email");
+        const updater = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        
+        for (const uid of newAssigneeIds) {
+          if (uid === userId) continue;
+
+          await prisma.notification.create({
+            data: {
+              type: "assignment",
+              title: "Task Assigned",
+              content: `${updater?.name || "Someone"} assigned you to "${task.title}"`,
+              link: `/tasks?taskId=${task.id}`,
+              userId: uid,
+            },
+          });
+
+          const assignee = await prisma.user.findUnique({ 
+            where: { id: uid },
+            include: { notificationPrefs: true }
+          });
+          
+          if (assignee?.email && assignee.notificationPrefs?.onAssigned) {
+            const html = buildAssignmentEmailHtml(
+              task.title,
+              updater?.name || "A team member",
+              `${process.env.NEXTAUTH_URL}/tasks?taskId=${task.id}`
+            );
+            await sendEmail({ to: assignee.email, subject: "New Task Assignment", html });
+          }
+        }
+      } catch (e) {
+        console.error("Assignment notifications failed:", e);
+      }
     }
   }
 
@@ -347,7 +388,7 @@ export async function updateTask(taskId: string, userId: string, data: TaskUpdat
 
     if (data.status && oldTask?.status !== data.status) {
       try {
-        const { sendEmail } = await import("@/lib/email");
+        const { sendEmail, buildStatusUpdateEmailHtml } = await import("@/lib/email");
         const updater = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
         
         const assigneesToEmail = await prisma.user.findMany({
@@ -359,15 +400,13 @@ export async function updateTask(taskId: string, userId: string, data: TaskUpdat
 
         for (const user of assigneesToEmail) {
           if (!user.email) continue;
-          const html = `
-            <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
-              <h2 style="color: #4f46e5;">Task Status Updated</h2>
-              <p><strong>${updater?.name || "A team member"}</strong> moved <strong>${task.title}</strong> to <strong>${data.status}</strong>.</p>
-              <a href="${process.env.NEXTAUTH_URL}/tasks?taskId=${task.id}" style="display: inline-block; background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">
-                View Task
-              </a>
-            </div>
-          `;
+          const html = buildStatusUpdateEmailHtml(
+            task.title,
+            oldTask.status,
+            data.status as string,
+            updater?.name || "A team member",
+            `${process.env.NEXTAUTH_URL}/tasks?taskId=${task.id}`
+          );
           await sendEmail({ to: user.email, subject: `Task Update: ${task.title}`, html });
         }
       } catch (e) {

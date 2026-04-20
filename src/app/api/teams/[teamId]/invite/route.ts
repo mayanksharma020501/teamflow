@@ -30,9 +30,24 @@ export async function POST(
       }
 
       // Add directly if user exists
-      await prisma.teamMember.create({
+      const member = await prisma.teamMember.create({
         data: { userId: existingUser.id, teamId, role: data.role },
+        include: { team: true }
       });
+
+      // Send 'You've been added' email
+      try {
+        const teamUrl = `${process.env.NEXTAUTH_URL}/teams/${teamId}`;
+        const html = buildInvitationEmailHtml(member.team.name, session.user.name || "A team member", teamUrl);
+        await sendEmail({
+          to: data.email,
+          subject: `You've been added to ${member.team.name} on TeamFlow`,
+          html,
+        });
+      } catch (err) {
+        console.error("Failed to send addition email:", err);
+      }
+
       return NextResponse.json({ success: true, directAdd: true });
     }
 

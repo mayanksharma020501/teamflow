@@ -91,6 +91,7 @@ model NotificationPrefs {
   onAssigned     Boolean @default(true)
   onMention      Boolean @default(true)
   onStatusChange Boolean @default(true)
+  onComment      Boolean @default(true)
   onReminder     Boolean @default(true)
   onRecurring    Boolean @default(true)
 }
