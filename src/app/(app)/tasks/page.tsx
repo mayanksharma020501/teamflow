@@ -511,15 +511,30 @@ function TasksContent() {
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
                       <div className={cn(
-                        "w-2 h-2 rounded-full",
+                        "w-2 h-2 rounded-full flex-shrink-0",
                         task.status === "DONE" ? "bg-green-500" : "bg-muted-foreground/30"
                       )} />
-                      <span className={cn(
-                        "text-sm font-semibold transition-colors group-hover:text-indigo-600",
-                        task.status === "DONE" && "text-muted-foreground line-through decoration-2"
-                      )}>
-                        {task.title}
-                      </span>
+                      <div className="flex flex-col gap-1 flex-1 min-w-0">
+                        <span className={cn(
+                          "text-sm font-semibold transition-colors group-hover:text-indigo-600 truncate",
+                          task.status === "DONE" && "text-muted-foreground line-through decoration-2"
+                        )}>
+                          {task.title}
+                        </span>
+                        {task.subtasks?.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1 bg-accent rounded-full overflow-hidden max-w-[60px]">
+                              <div 
+                                className="h-full bg-indigo-500 transition-all duration-500" 
+                                style={{ width: `${(task.subtasks.filter((s: any) => s.status === 'DONE').length / task.subtasks.length) * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase whitespace-nowrap">
+                              {task.subtasks.filter((s: any) => s.status === 'DONE').length}/{task.subtasks.length}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="py-4 px-4">

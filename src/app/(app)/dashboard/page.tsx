@@ -75,6 +75,7 @@ export default function DashboardPage() {
     dueInPeriod: 0,
     overdue: 0,
     completedInPeriod: 0,
+    completionRate: 0,
     upcoming: [] as Array<{
       id: string;
       title: string;
@@ -195,6 +196,14 @@ export default function DashboardPage() {
       bg: "bg-indigo-50 dark:bg-indigo-950",
       text: "text-indigo-700 dark:text-indigo-300",
     },
+    {
+      label: "Productivity",
+      value: `${stats.completionRate}%`,
+      icon: TrendingUp,
+      color: "from-amber-500 to-amber-600",
+      bg: "bg-amber-50 dark:bg-amber-950",
+      text: "text-amber-700 dark:text-amber-300",
+    },
   ];
 
   return (
@@ -258,7 +267,7 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
             {statCards.map((card) => (
               <div
                 key={card.label}

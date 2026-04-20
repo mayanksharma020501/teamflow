@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { inviteSchema } from "@/lib/validators";
 import { addDays } from "date-fns";
+import { sendEmail, buildInvitationEmailHtml } from "@/lib/email";
 import crypto from "crypto";
 
 export async function POST(
@@ -44,9 +45,28 @@ export async function POST(
         token: crypto.randomBytes(32).toString("hex"),
         expires: addDays(new Date(), 7),
       },
+      include: { team: true },
     });
 
-    return NextResponse.json({ success: true, inviteId: invite.id });
+    // Send invitation email
+    try {
+      const inviteUrl = `${process.env.NEXTAUTH_URL}/invite/${invite.token}`;
+      const html = buildInvitationEmailHtml(invite.team.name, session.user.name || "A team member", inviteUrl);
+      await sendEmail({
+        to: data.email,
+        subject: `Join ${invite.team.name} on TeamFlow`,
+        html,
+      });
+    } catch (err) {
+      console.error("Failed to send invitation email:", err);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      inviteId: invite.id, 
+      token: invite.token,
+      link: `${process.env.NEXTAUTH_URL}/invite/${invite.token}`
+    });
   } catch (error) {
     console.error("Invite error:", error);
     return NextResponse.json({ error: "Failed to send invite" }, { status: 500 });
