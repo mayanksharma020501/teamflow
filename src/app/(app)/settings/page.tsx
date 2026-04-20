@@ -40,7 +40,11 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         await update({ name });
-        toast.success("Settings saved!");
+        toast.success("Settings saved! Refreshing...");
+        // Force a hard refresh to update session across all components (Sidebar, Dashboard, etc.)
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }
     } catch {
       toast.error("Failed to save settings");
@@ -74,7 +78,7 @@ export default function SettingsPage() {
             )}
           </div>
           <div>
-            <p className="font-semibold text-foreground">{session?.user?.name}</p>
+            <p className="font-semibold text-foreground">{name || session?.user?.name}</p>
             <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
             <div className="pt-2">
               <button
