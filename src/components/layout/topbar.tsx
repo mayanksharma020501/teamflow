@@ -65,6 +65,8 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
     <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border/50 bg-card/80 backdrop-blur-xl px-4 md:px-6 py-3">
       <div className="flex items-center gap-4 flex-1">
         <button
+          aria-label="Open menu"
+          title="Open menu"
           onClick={onMenuClick}
           className="p-2 rounded-xl hover:bg-accent md:hidden transition-colors"
         >
@@ -95,6 +97,8 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
       <div className="flex items-center gap-2">
         <div className="relative">
           <button 
+            aria-label="Toggle notifications"
+            title="Notifications"
             onClick={() => setShowNotifications(!showNotifications)}
             className="relative p-2 rounded-xl hover:bg-accent transition-colors"
           >

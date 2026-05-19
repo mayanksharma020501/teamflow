@@ -78,12 +78,16 @@ export function Sidebar({
           </span>
         )}
         <button
+          aria-label="Close menu"
+          title="Close menu"
           onClick={() => setMobileOpen?.(false)}
           className="ml-auto p-1.5 rounded-lg hover:bg-accent md:hidden transition-colors"
         >
           <X size={20} className="text-muted-foreground" />
         </button>
         <button
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
             "ml-auto p-1.5 rounded-lg hover:bg-accent transition-colors hidden md:block",
@@ -141,6 +145,8 @@ export function Sidebar({
       <div className="border-t border-border/50 p-3 space-y-2">
         {/* Theme Toggle */}
         <button
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className={cn(
             "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-all w-full",
@@ -184,6 +190,8 @@ export function Sidebar({
             )}
             {!collapsed && (
               <button
+                aria-label="Sign out"
+                title="Sign out"
                 onClick={() => signOut()}
                 className="p-1.5 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors"
               >
